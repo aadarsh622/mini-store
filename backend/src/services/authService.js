@@ -24,7 +24,7 @@ const register = async ({ name, email, password, phone, address }) => {
     address,
   });
 
-  const token = generateToken({ id: user._id, role: user.role });
+  const token = generateToken({ id: user._id });
 
   const safeUser = user.toObject();
   delete safeUser.password;
@@ -47,7 +47,7 @@ const login = async ({ email, password }) => {
     throw new AppError('Invalid email or password', 401);
   }
 
-  const token = generateToken({ id: user._id, role: user.role });
+  const token = generateToken({ id: user._id });
 
   const safeUser = user.toObject();
   delete safeUser.password;

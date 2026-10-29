@@ -1,3 +1,5 @@
+import { tokenService } from './token.service.js';
+
 // Normalize so both "https://host" and "https://host/api" work in Vercel env.
 function resolveApiBaseUrl(raw) {
   const fallback = 'http://localhost:5000/api';
@@ -14,7 +16,7 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = tokenService.get();
     const config = {
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +41,9 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        const error = new Error(data.message || 'Request failed');
+        error.status = response.status;
+        throw error;
       }
 
       return data;
@@ -68,7 +72,7 @@ class ApiClient {
 
   upload(endpoint, formData) {
     const url = `${this.baseURL}${endpoint}`;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = tokenService.get();
     const config = {
       method: 'POST',
       headers: {
@@ -87,7 +91,9 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Upload failed');
+        const error = new Error(data.message || 'Upload failed');
+        error.status = response.status;
+        throw error;
       }
 
       return data;

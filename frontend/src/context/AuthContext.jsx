@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthContext } from './AuthContext.js';
 import { authService } from '../services/auth.service.js';
+import { tokenService } from '../services/token.service.js';
 import { toast } from 'sonner';
 
 export function AuthProvider({ children }) {
@@ -10,13 +11,23 @@ export function AuthProvider({ children }) {
 
   const fetchUser = useCallback(async () => {
     try {
+      if (!tokenService.get()) {
+        setUser(null);
+        return;
+      }
+
       const response = await authService.getMe();
       if (response.success && response.data?.user) {
         setUser(response.data.user);
       } else {
-        setUser(null);
+        throw new Error(response.message || 'Unable to verify your session');
       }
-    } catch {
+    } catch (error) {
+      if (error.status === 401) {
+        tokenService.clear();
+      } else {
+        toast.error(error.message || 'Unable to verify your session');
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -29,39 +40,40 @@ export function AuthProvider({ children }) {
     fetchUser();
   }, [fetchUser]);
 
+  const establishSession = useCallback((response, failureMessage, successMessage) => {
+    const session = response?.data;
+    if (!response?.success || !session?.user || !session.token) {
+      return { success: false, message: response?.message || failureMessage };
+    }
+
+    tokenService.set(session.token);
+    setUser(session.user);
+    toast.success(successMessage);
+    return { success: true, user: session.user };
+  }, []);
+
   const login = useCallback(async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      if (response.success && response.data?.user) {
-        if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-        }
-        setUser(response.data.user);
-        toast.success('Welcome back!');
-        return { success: true, user: response.data.user };
-      }
-      return { success: false, message: response.message || 'Login failed' };
+      return establishSession(response, 'Login failed', 'Welcome back!');
     } catch (error) {
       return { success: false, message: error.message || 'Login failed' };
     }
-  }, []);
+  }, [establishSession]);
 
   const register = useCallback(async (name, email, password) => {
     try {
       const response = await authService.register(name, email, password);
-      if (response.success && response.data?.user) {
-        if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-        }
-        setUser(response.data.user);
-        toast.success('Account created successfully!');
-        return { success: true };
-      }
-      return { success: false, message: response.message || 'Registration failed' };
+      const result = establishSession(
+        response,
+        'Registration failed',
+        'Account created successfully!'
+      );
+      return result.success ? { success: true } : result;
     } catch (error) {
       return { success: false, message: error.message || 'Registration failed' };
     }
-  }, []);
+  }, [establishSession]);
 
   const logout = useCallback(async () => {
     try {
@@ -69,7 +81,7 @@ export function AuthProvider({ children }) {
     } catch {
       // ignore network errors on logout
     } finally {
-      localStorage.removeItem('token');
+      tokenService.clear();
       setUser(null);
       toast.success('Logged out successfully');
     }

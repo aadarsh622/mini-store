@@ -7,7 +7,13 @@ export const authService = {
 
   logout: () => api.post('/auth/logout'),
 
-  getMe: () => api.get('/users/me'),
+  getMe: async () => {
+    const response = await api.get('/users/me');
+    return {
+      ...response,
+      data: { user: response.data?.user ?? response.data },
+    };
+  },
 
   updateProfile: (data) => api.put('/users/me', data),
 
