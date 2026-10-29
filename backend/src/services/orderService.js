@@ -1,6 +1,7 @@
 // services/orderService.js
 // Service — business logic for placing and managing orders
 const orderRepository = require('../repositories/orderRepository');
+const Order = require('../models/Order');
 const cartRepository = require('../repositories/cartRepository');
 const productRepository = require('../repositories/productRepository');
 const AppError = require('../utils/AppError');
@@ -89,10 +90,22 @@ const getMyOrders = async (userId, { page = 1, limit = 20 } = {}) => {
 
 const listAllOrders = async ({ page = 1, limit = 20, status } = {}) => {
   const filter = {};
-  if (status) filter.status = status;
+  const validStatuses = Order.schema.path('status').enumValues;
+  if (status !== undefined) {
+    if (!validStatuses.includes(status)) {
+      throw new AppError('Invalid order status filter', 400);
+    }
+    filter.status = status;
+  }
 
-  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
-  const limitNum = Math.max(parseInt(limit, 10) || 20, 1);
+  const pageNum = Number(page);
+  const limitNum = Number(limit);
+  if (!Number.isSafeInteger(pageNum) || pageNum < 1) {
+    throw new AppError('Page must be a positive integer', 400);
+  }
+  if (!Number.isSafeInteger(limitNum) || limitNum < 1 || limitNum > 100) {
+    throw new AppError('Limit must be an integer between 1 and 100', 400);
+  }
   const skip = (pageNum - 1) * limitNum;
 
   const [orders, total] = await Promise.all([
@@ -103,8 +116,8 @@ const listAllOrders = async ({ page = 1, limit = 20, status } = {}) => {
 };
 
 const updateOrderStatus = async (orderId, status) => {
-  const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-  if (!validStatuses.includes(status)) {
+  const validStatuses = Order.schema.path('status').enumValues;
+  if (typeof status !== 'string' || !validStatuses.includes(status)) {
     throw new AppError('Invalid order status', 400);
   }
 

@@ -10,7 +10,7 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -36,6 +36,12 @@ services:
         value: uploads
       - key: MAX_FILE_SIZE_MB
         value: "5"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
       - key: PHONEPE_BASE_URL
         value: https://api-preprod.phonepe.com
       - key: PHONEPE_CLIENT_ID

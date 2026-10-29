@@ -38,8 +38,11 @@ const errorHandler = (err, req, res, next) => {
 
   // Multer upload errors (file too large, too many files, etc.)
   if (err.name === 'MulterError') {
-    statusCode = 400;
-    message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large' : err.message;
+    statusCode = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    message =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? `Image exceeds the maximum allowed size of ${environment.MAX_FILE_SIZE_MB} MB`
+        : err.message;
   }
 
   if (environment.NODE_ENV !== 'production') {

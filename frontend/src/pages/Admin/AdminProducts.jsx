@@ -5,25 +5,31 @@ import { productService } from '../../services/product.service.js';
 import { getImageUrl } from '../../services/api.js';
 import { toast } from 'sonner';
 
+const createEmptyForm = () => ({
+  title: '',
+  description: '',
+  price: '',
+  discountPrice: '',
+  brand: '',
+  category: '',
+  image: '',
+  imageMetadata: null,
+  stock: '',
+  isActive: true,
+  featured: false,
+  specifications: '',
+});
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
   const fileInputRef = useRef(null);
   const [categories, setCategories] = useState([]);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    discountPrice: '',
-    brand: '',
-    category: '',
-    image: '',
-    stock: '',
-    isActive: true,
-    featured: false,
-  });
+  const [formData, setFormData] = useState(createEmptyForm);
 
   const loadProducts = async () => {
     try {
@@ -55,13 +61,15 @@ const AdminProducts = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       toast.error('Please select an image file (PNG, JPG, JPEG, WEBP)');
+      e.target.value = '';
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image size must be less than 5MB');
+      e.target.value = '';
       return;
     }
 
@@ -70,7 +78,11 @@ const AdminProducts = () => {
       const response = await adminService.uploadProductImage(file);
       const imagePath = response.data?.image || response.image;
       if (imagePath) {
-        setFormData((prev) => ({ ...prev, image: imagePath }));
+        setFormData((prev) => ({
+          ...prev,
+          image: imagePath,
+          imageMetadata: response.data?.imageMetadata || null,
+        }));
         toast.success('Image uploaded successfully');
       } else {
         toast.error('Failed to get uploaded image path');
@@ -86,20 +98,47 @@ const AdminProducts = () => {
   };
 
   const handleRemoveImage = () => {
-    setFormData((prev) => ({ ...prev, image: '' }));
+    setFormData((prev) => ({ ...prev, image: '', imageMetadata: null }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingProductId(null);
+    setFormData(createEmptyForm());
+  };
+
+  const handleEdit = (product) => {
+    setEditingProductId(product._id);
+    setFormData({
+      ...createEmptyForm(),
+      title: product.title || '',
+      description: product.description || '',
+      price: product.price ?? '',
+      discountPrice: product.discountPrice ?? '',
+      brand: product.brand || '',
+      category: product.category?._id || product.category || '',
+      image: product.image || product.images?.[0] || '',
+      imageMetadata: product.imageMetadata || null,
+      stock: product.stock ?? '',
+      isActive: product.isActive !== false,
+      featured: Boolean(product.featured),
+    });
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSavingProduct(true);
     try {
       const payload = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
         image: formData.image.trim(),
+        imageMetadata: formData.imageMetadata,
         isActive: formData.isActive,
         featured: formData.featured,
         brand: formData.brand.trim() || undefined,
@@ -108,24 +147,19 @@ const AdminProducts = () => {
         stock: Number(formData.stock),
       };
 
-      await adminService.createProduct(payload);
-      toast.success('Product created successfully');
-      setShowForm(false);
-      setFormData({
-        title: '',
-        description: '',
-        price: '',
-        discountPrice: '',
-        brand: '',
-        category: '',
-        image: '',
-        stock: '',
-        isActive: true,
-        featured: false,
-      });
-      loadProducts();
-    } catch {
-      toast.error('Failed to create product');
+      if (editingProductId) {
+        await adminService.updateProduct(editingProductId, payload);
+        toast.success('Product updated successfully');
+      } else {
+        await adminService.createProduct(payload);
+        toast.success('Product created successfully');
+      }
+      closeForm();
+      await loadProducts();
+    } catch (error) {
+      toast.error(error.message || `Failed to ${editingProductId ? 'update' : 'create'} product`);
+    } finally {
+      setSavingProduct(false);
     }
   };
 
@@ -162,7 +196,11 @@ const AdminProducts = () => {
       <section className="page adminPage">
         <div className="adminHeader">
           <h1 className="pageTitle">Admin Products</h1>
-          <button type="button" className="btn" onClick={() => setShowForm(!showForm)}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => (showForm ? closeForm() : setShowForm(true))}
+          >
             {showForm ? 'Cancel' : '+ Add Product'}
           </button>
         </div>
@@ -277,8 +315,14 @@ const AdminProducts = () => {
                       className="input"
                       style={{ flex: 1, minWidth: '220px' }}
                       value={formData.image}
-                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                      placeholder="https://example.com/image.png or /uploads/..."
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          image: e.target.value,
+                          imageMetadata: null,
+                        })
+                      }
+                      placeholder="https://example.com/image.png"
                     />
                   </div>
 
@@ -294,6 +338,13 @@ const AdminProducts = () => {
                       />
                       <div className="imagePreviewInfo">
                         <div className="imagePreviewPath">{formData.image}</div>
+                        {formData.imageMetadata && (
+                          <div className="imagePreviewPath">
+                            {formData.imageMetadata.format?.toUpperCase()} ·{' '}
+                            {formData.imageMetadata.width} × {formData.imageMetadata.height} ·{' '}
+                            {Math.ceil(formData.imageMetadata.bytes / 1024)} KB
+                          </div>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -359,8 +410,19 @@ const AdminProducts = () => {
               </div>
             </div>
 
-            <button type="submit" className="btn authSubmit" style={{ marginTop: 18 }}>
-              Create Product
+            <button
+              type="submit"
+              className="btn authSubmit"
+              style={{ marginTop: 18 }}
+              disabled={uploadingImage || savingProduct}
+            >
+              {savingProduct
+                ? editingProductId
+                  ? 'Saving changes...'
+                  : 'Creating product...'
+                : editingProductId
+                  ? 'Save Changes'
+                  : 'Create Product'}
             </button>
           </motion.form>
         )}
@@ -402,6 +464,13 @@ const AdminProducts = () => {
                     </span>
                   </td>
                   <td>
+                    <button
+                      type="button"
+                      className="linkBtn"
+                      onClick={() => handleEdit(product)}
+                    >
+                      Edit
+                    </button>
                     <button
                       type="button"
                       className="linkBtn danger"

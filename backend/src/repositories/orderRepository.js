@@ -19,7 +19,10 @@ const findAll = ({ filter = {}, skip = 0, limit = 20 } = {}) =>
 const count = (filter = {}) => Order.countDocuments(filter);
 
 const updateStatus = (id, status) =>
-  Order.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
+  Order.findByIdAndUpdate(id, { status }, { new: true, runValidators: true }).populate(
+    'user',
+    'name email'
+  );
 
 const updatePaymentStatus = (id, paymentStatus) =>
   Order.findByIdAndUpdate(id, { paymentStatus }, { new: true, runValidators: true });

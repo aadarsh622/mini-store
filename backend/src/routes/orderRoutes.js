@@ -6,16 +6,14 @@ const { adminOnly } = require('../middleware/adminMiddleware');
 
 const router = express.Router();
 
-router.use(protect);
-
 // User endpoints
-router.post('/', orderController.placeOrder);
-router.get('/my-orders', orderController.getMyOrders);
-router.get('/:id', orderController.getOrderById);
-router.delete('/:id', orderController.cancelOrder);
+router.post('/', protect, orderController.placeOrder);
+router.get('/my-orders', protect, orderController.getMyOrders);
+router.get('/:id', protect, orderController.getOrderById);
+router.delete('/:id', protect, orderController.cancelOrder);
 
 // Admin endpoints
-router.get('/', adminOnly, orderController.listAllOrders);
-router.put('/:id/status', adminOnly, orderController.updateOrderStatus);
+router.get('/', protect, adminOnly, orderController.listAllOrders);
+router.put('/:id/status', protect, adminOnly, orderController.updateOrderStatus);
 
 module.exports = router;

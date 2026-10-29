@@ -2,6 +2,18 @@
 // Entity — like a Java @Entity class for the "products" table
 const mongoose = require('mongoose');
 
+const imageMetadataSchema = new mongoose.Schema(
+  {
+    provider: { type: String, enum: ['cloudinary'] },
+    publicId: { type: String, trim: true },
+    format: { type: String, trim: true },
+    bytes: { type: Number, min: 0 },
+    width: { type: Number, min: 0 },
+    height: { type: Number, min: 0 },
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     title: {
@@ -27,6 +39,10 @@ const productSchema = new mongoose.Schema(
     image: {
       type: String,
       default: '',
+    },
+    imageMetadata: {
+      type: imageMetadataSchema,
+      default: undefined,
     },
     stock: {
       type: Number,

@@ -47,6 +47,11 @@ const environment = {
   UPLOAD_DIR: process.env.UPLOAD_DIR || 'uploads',
   UPLOAD_PATH: path.join(__dirname, '..', '..', process.env.UPLOAD_DIR || 'uploads'),
   MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5,
+
+  // Cloudinary stores uploaded product images outside the application filesystem.
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
 };
 
 if (
@@ -65,6 +70,18 @@ if (
     process.env.JWT_SECRET.includes('replace_with_secure_random_secret_in_production'))
 ) {
   console.error('ERROR: JWT_SECRET must be set to a secure random value in production.');
+  process.exit(1);
+}
+
+if (
+  environment.NODE_ENV === 'production' &&
+  (!environment.CLOUDINARY_CLOUD_NAME ||
+    !environment.CLOUDINARY_API_KEY ||
+    !environment.CLOUDINARY_API_SECRET)
+) {
+  console.error(
+    'ERROR: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must be set in production for persistent product image uploads.'
+  );
   process.exit(1);
 }
 

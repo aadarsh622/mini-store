@@ -601,7 +601,8 @@ The frontend will start on http://localhost:5173 by default.
    description: String,
    price: Number,
    category: String,
-   image: String (URL/path),
+   image: String (URL/path; existing values remain supported),
+   imageMetadata: { provider, publicId, format, bytes, width, height } (optional),
    stock: Number,
    rating: Number,
    reviews: [ObjectId (Reference to Review)],
@@ -921,7 +922,7 @@ This project is designed to run as two services:
 2. On Render → **New → Blueprint** (uses root `render.yaml`) **or** **New Web Service**.
 3. If creating a Web Service manually:
    - **Root Directory:** `backend`
-   - **Build Command:** `npm install`
+   - **Build Command:** `npm ci`
    - **Start Command:** `npm start`
 4. Set these environment variables:
 
@@ -931,9 +932,14 @@ This project is designed to run as two services:
    JWT_SECRET=a_long_random_secret
    CLIENT_URL=https://your-frontend.vercel.app
    API_PUBLIC_URL=https://your-backend.onrender.com
+   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+   CLOUDINARY_API_KEY=your_cloudinary_api_key
+   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
    ```
 
-   Optional: `RESEND_API_KEY`, PhonePe sandbox keys (see `backend/.env.example`).
+   Configure the Cloudinary credentials in Render's environment settings for
+   persistent product image uploads. Never commit these credentials. Optional:
+   `RESEND_API_KEY`, PhonePe sandbox keys (see `backend/.env.example`).
 
    Do **not** hardcode `PORT` — Render injects it automatically.
 
@@ -960,6 +966,9 @@ This project is designed to run as two services:
 | `API_PUBLIC_URL` | Render | `https://<render-service>.onrender.com` |
 | `MONGO_URI` | Render | Atlas connection string |
 | `JWT_SECRET` | Render | Strong random string |
+| `CLOUDINARY_CLOUD_NAME` | Render | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Render | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Render | Cloudinary API secret |
 
 Local development: copy `backend/.env.example` → `backend/.env` and `frontend/.env.example` → `frontend/.env`.
 

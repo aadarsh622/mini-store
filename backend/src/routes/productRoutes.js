@@ -10,18 +10,6 @@ const AppError = require('../utils/AppError');
 
 const router = express.Router();
 
-// --- Multer setup for product image uploads ---
-const storage = multer.diskStorage({
-  // Absolute path (environment.UPLOAD_PATH) — a relative string here would
-  // resolve against process.cwd(), which breaks if the app isn't started
-  // from exactly the backend/ folder.
-  destination: (req, file, cb) => cb(null, environment.UPLOAD_PATH),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${uniqueSuffix}${path.extname(file.originalname).toLowerCase()}`);
-  },
-});
-
 const ALLOWED_EXT = /^\.(jpe?g|png|webp)$/i;
 const ALLOWED_MIME = /^image\/(jpeg|png|webp)$/;
 
@@ -37,7 +25,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: { fileSize: environment.MAX_FILE_SIZE_MB * 1024 * 1024 },
 });

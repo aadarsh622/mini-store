@@ -50,7 +50,12 @@ const listAllOrders = async (req, res, next) => {
 
 const updateOrderStatus = async (req, res, next) => {
   try {
-    const order = await orderService.updateOrderStatus(req.params.id, req.body.status);
+    const status = req.body?.status;
+    if (typeof status !== 'string') {
+      return response.error(res, { message: 'A valid order status is required', statusCode: 400 });
+    }
+
+    const order = await orderService.updateOrderStatus(req.params.id, status);
     return response.success(res, { message: 'Order status updated', data: order });
   } catch (err) {
     next(err);

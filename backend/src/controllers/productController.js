@@ -3,6 +3,7 @@
 // Category management is folded in here (rather than a separate controller)
 // since categories only exist to support the product catalog.
 const productService = require('../services/productService');
+const imageStorageService = require('../services/imageStorageService');
 const categoryRepository = require('../repositories/categoryRepository');
 const AppError = require('../utils/AppError');
 const response = require('../utils/response');
@@ -69,14 +70,13 @@ const getProductsByCategory = async (req, res, next) => {
   }
 };
 
-// Handles image upload via multer (see routes/productRoutes.js for the multer config)
 const uploadProductImage = async (req, res, next) => {
   try {
     if (!req.file) {
       return response.error(res, { message: 'No file uploaded', statusCode: 400 });
     }
-    const imagePath = `/uploads/${req.file.filename}`;
-    return response.success(res, { message: 'Image uploaded', data: { image: imagePath } });
+    const image = await imageStorageService.uploadProductImage(req.file);
+    return response.success(res, { message: 'Image uploaded', data: image });
   } catch (err) {
     next(err);
   }

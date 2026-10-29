@@ -1,23 +1,23 @@
-import { useState, memo } from 'react';
+import { memo } from 'react';
+import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart.js';
 import { useWishlist } from '../hooks/useWishlist.js';
 import { getImageUrl } from '../services/api.js';
 
 const round2 = (n) => Math.round(n * 100) / 100;
+const FALLBACK_IMAGE = 'https://cdn-icons-png.flaticon.com/512/3081/3081558.png';
 
 const ProductCard = ({ product }) => {
-  const [imgLoaded, setImgLoaded] = useState(false);
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const navigate = useNavigate();
 
   const productId = product._id || product.id;
   const title = product.name || product.title || 'Untitled Product';
-  const fallbackImage = 'https://cdn-icons-png.flaticon.com/512/3081/3081558.png';
   const rawImage =
-    (Array.isArray(product.images) && product.images[0]) || product.image || fallbackImage;
-  const [image, setImage] = useState(getImageUrl(rawImage) || fallbackImage);
+    (Array.isArray(product.images) && product.images[0]) || product.image || FALLBACK_IMAGE;
+  const image = getImageUrl(rawImage) || FALLBACK_IMAGE;
   const categoryName =
     typeof product.category === 'object' && product.category !== null
       ? product.category.name || ''
@@ -73,24 +73,26 @@ const ProductCard = ({ product }) => {
       </button>
 
       <div className="productImageWrap">
-        <img
-          className="productImage"
-          src={image}
-          alt={title}
-          loading="lazy"
-          onLoad={() => setImgLoaded(true)}
-          onError={() => {
-            if (image !== fallbackImage) {
-              setImage(fallbackImage);
-            } else {
-              setImgLoaded(true);
-            }
-          }}
-          style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
-        />
+        <Link className="productImageLink" to={`/products/${productId}`} aria-label={`View ${title}`}>
+          <img
+            className="productImage"
+            src={image}
+            alt={title}
+            loading="lazy"
+            onError={(e) => {
+              if (e.currentTarget.src !== FALLBACK_IMAGE) {
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }
+            }}
+          />
+        </Link>
       </div>
 
-      <h3 className="productTitle">{title}</h3>
+      <h3 className="productTitle">
+        <Link className="productTitleLink" to={`/products/${productId}`}>
+          {title}
+        </Link>
+      </h3>
       {categoryName && <p className="productCategory">{categoryName}</p>}
 
       <div className="productRating">
